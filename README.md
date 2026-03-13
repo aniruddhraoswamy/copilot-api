@@ -138,10 +138,6 @@ sequenceDiagram
 ### Using Docker Compose (Recommended)
 
 ```bash
-# Clone the repository
-git clone https://github.com/yuegongzi/copilot-api.git
-cd copilot-api
-
 # Start the server
 docker compose up -d
 
@@ -244,11 +240,7 @@ Configure Claude Code to use this proxy by creating a `.claude/settings.json` fi
 {
   "env": {
     "ANTHROPIC_BASE_URL": "http://localhost:4141",
-    "ANTHROPIC_AUTH_TOKEN": "sk-xxxx",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4.5",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4.5",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4.5",
-    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-4.5"
+    "ANTHROPIC_AUTH_TOKEN": "sk-xxxx"
   },
   "model": "opus",
   "permissions": {
@@ -256,6 +248,14 @@ Configure Claude Code to use this proxy by creating a `.claude/settings.json` fi
   }
 }
 ```
+
+### Configure Model Mappings in the Admin UI
+
+Model selection no longer needs to be hardcoded in `.claude/settings.json`. Open `/admin`, switch to the `Model Mappings` tab, and map Claude Code model aliases to the actual Copilot models you want to use.
+
+This is the recommended way to route `haiku`, `sonnet`, `opus`, dated Claude model IDs, or any other client-facing model name without changing local Claude Code settings each time.
+
+![Model mappings in the admin UI](docs/images/model-mappings.png)
 
 More options: [Claude Code settings](https://docs.anthropic.com/en/docs/claude-code/settings#environment-variables)
 

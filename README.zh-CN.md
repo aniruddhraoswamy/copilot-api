@@ -138,10 +138,6 @@ sequenceDiagram
 ### 使用 Docker Compose（推荐）
 
 ```bash
-# 克隆仓库
-git clone https://github.com/yuegongzi/copilot-api.git
-cd copilot-api
-
 # 启动服务器
 docker compose up -d
 
@@ -244,11 +240,7 @@ volumes:
 {
   "env": {
     "ANTHROPIC_BASE_URL": "http://localhost:4141",
-    "ANTHROPIC_AUTH_TOKEN": "sk-xxxx",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4.5",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4.5",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4.5",
-    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-4.5"
+    "ANTHROPIC_AUTH_TOKEN": "sk-xxxx"
   },
   "model": "opus",
   "permissions": {
@@ -256,6 +248,14 @@ volumes:
   }
 }
 ```
+
+### 在管理页面配置模型映射
+
+现在不需要再把模型映射硬编码在 `.claude/settings.json` 里。打开 `/admin`，切换到 `Model Mappings` 页面后，即可把 Claude Code 使用的模型别名映射到实际的 Copilot 模型。
+
+这是目前更推荐的方式，适合统一管理 `haiku`、`sonnet`、`opus`、带日期的 Claude 模型 ID，以及其他客户端侧使用的模型名称，而不必反复修改本地 Claude Code 配置。
+
+![管理页面中的模型映射](docs/images/model-mappings.png)
 
 更多选项：[Claude Code 设置](https://docs.anthropic.com/en/docs/claude-code/settings#environment-variables)
 
