@@ -4,6 +4,7 @@ import consola from "consola"
 import { serve, type ServerHandler } from "srvx"
 
 import { getActiveAccount } from "./lib/accounts"
+import { ensureAdminAuth } from "./lib/auth"
 import { mergeConfigWithDefaults } from "./lib/config"
 import { copilotTokenManager } from "./lib/copilot-token-manager"
 import { ensurePaths } from "./lib/paths"
@@ -44,6 +45,7 @@ async function main(): Promise<void> {
   state.showToken = SHOW_TOKEN
 
   await ensurePaths()
+  await ensureAdminAuth()
   await cacheVSCodeVersion()
 
   // Try to load active account from config

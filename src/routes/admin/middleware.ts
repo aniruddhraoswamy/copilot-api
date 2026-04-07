@@ -1,5 +1,7 @@
 import type { Context, Next } from "hono"
 
+import { validateSession } from "~/lib/auth"
+
 /**
  * Middleware to restrict access to localhost only.
  * Admin panel should only be accessible from 127.0.0.1 or ::1
@@ -46,6 +48,52 @@ export async function localOnlyMiddleware(
       },
       403,
     )
+  }
+
+  await next()
+  return undefined
+}
+
+/**
+ * Middleware to require admin session for protected routes.
+ * Login page and login API are excluded.
+ */
+export async function adminAuthMiddleware(
+  c: Context,
+  next: Next,
+): Promise<Response | undefined> {
+  const path = c.req.path
+
+  // Allow login page, login API, and static assets without session
+  if (
+    path === "/admin/login"
+    || path === "/admin/api/auth/login"
+    || path === "/admin/api/auth/check"
+  ) {
+    await next()
+    return undefined
+  }
+
+  // Check session cookie or Authorization header
+  const cookieHeader = c.req.header("cookie") ?? ""
+  const sessionMatch = cookieHeader.match(/admin_session=([^;]+)/)
+  const sessionToken = sessionMatch?.[1]
+
+  if (!validateSession(sessionToken)) {
+    // For API requests, return 401 JSON
+    if (path.startsWith("/admin/api/")) {
+      return c.json(
+        {
+          error: {
+            message: "Not authenticated",
+            type: "auth_required",
+          },
+        },
+        401,
+      )
+    }
+    // For HTML page requests, redirect to login
+    return c.redirect("/admin/login")
   }
 
   await next()

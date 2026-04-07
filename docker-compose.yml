@@ -1,5 +1,5 @@
 # Docker Compose configuration for copilot-api
-# 
+#
 # Quick start:
 #   docker compose up -d
 #
@@ -7,7 +7,7 @@
 
 services:
   copilot-api:
-    image: ghcr.io/yuegongzi/copilot-api:latest
+    image: ghcr.io/aniruddhraoswamy/copilot-api:latest
     container_name: copilot-api
     ports:
       - "4141:4141"

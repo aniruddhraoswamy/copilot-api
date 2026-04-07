@@ -12,6 +12,19 @@ export interface AccountConfig {
   createdAt: string
 }
 
+export interface AdminAuth {
+  username: string
+  passwordHash: string
+  salt: string
+}
+
+export interface ApiKeyConfig {
+  id: string
+  key: string
+  name: string
+  createdAt: string
+}
+
 export interface AppConfig {
   extraPrompts?: Record<string, string>
   smallModel?: string
@@ -26,6 +39,9 @@ export interface AppConfig {
   // Account management
   accounts?: Array<AccountConfig>
   activeAccountId?: string | null
+  // Auth
+  adminAuth?: AdminAuth
+  apiKeys?: Array<ApiKeyConfig>
 }
 
 const gpt5ExplorationPrompt = `## Exploration and reading files

@@ -8,6 +8,16 @@ import {
   setActiveAccount,
   type Account,
 } from "~/lib/accounts"
+import {
+  changeAdminPassword,
+  createSession,
+  deleteApiKey,
+  destroySession,
+  generateApiKey,
+  listApiKeys,
+  validateSession,
+  verifyAdminPassword,
+} from "~/lib/auth"
 import { getConfig, saveConfig } from "~/lib/config"
 import { copilotTokenManager } from "~/lib/copilot-token-manager"
 import { state } from "~/lib/state"
@@ -15,13 +25,183 @@ import { getDeviceCode } from "~/services/github/get-device-code"
 import { getGitHubUser } from "~/services/github/get-user"
 import { pollAccessTokenOnce } from "~/services/github/poll-access-token"
 
-import { adminHtml } from "./html"
-import { localOnlyMiddleware } from "./middleware"
+import { adminHtml, loginHtml } from "./html"
+import { adminAuthMiddleware, localOnlyMiddleware } from "./middleware"
 
 export const adminRoutes = new Hono()
 
 // Apply localhost-only middleware to all admin routes
 adminRoutes.use("*", localOnlyMiddleware)
+
+// Apply session auth middleware after localhost check
+adminRoutes.use("*", adminAuthMiddleware)
+
+// ==================== Auth / Login ====================
+
+// Login page
+adminRoutes.get("/login", (c) => {
+  return c.html(loginHtml)
+})
+
+// Check if user is authenticated
+adminRoutes.get("/api/auth/check", (c) => {
+  const cookieHeader = c.req.header("cookie") ?? ""
+  const sessionMatch = cookieHeader.match(/admin_session=([^;]+)/)
+  const token = sessionMatch?.[1]
+  return c.json({ authenticated: Boolean(token && validateSession(token)) })
+})
+
+// Login
+adminRoutes.post("/api/auth/login", async (c) => {
+  const body = await c.req.json<{ username: string; password: string }>()
+
+  if (!body.username || !body.password) {
+    return c.json(
+      {
+        error: {
+          message: "Username and password are required",
+          type: "validation_error",
+        },
+      },
+      400,
+    )
+  }
+
+  if (!verifyAdminPassword(body.username, body.password)) {
+    return c.json(
+      {
+        error: {
+          message: "Invalid credentials",
+          type: "auth_error",
+        },
+      },
+      401,
+    )
+  }
+
+  const token = createSession(body.username)
+
+  // Set session cookie
+  c.header(
+    "Set-Cookie",
+    `admin_session=${token}; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=86400`,
+  )
+
+  return c.json({ success: true })
+})
+
+// Logout
+adminRoutes.post("/api/auth/logout", (c) => {
+  const cookieHeader = c.req.header("cookie") ?? ""
+  const sessionMatch = cookieHeader.match(/admin_session=([^;]+)/)
+  const token = sessionMatch?.[1]
+  if (token) destroySession(token)
+
+  c.header(
+    "Set-Cookie",
+    "admin_session=; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=0",
+  )
+  return c.json({ success: true })
+})
+
+// Change password
+adminRoutes.post("/api/auth/change-password", async (c) => {
+  const body = await c.req.json<{
+    currentPassword: string
+    newPassword: string
+  }>()
+
+  if (!body.currentPassword || !body.newPassword) {
+    return c.json(
+      {
+        error: {
+          message: "Current password and new password are required",
+          type: "validation_error",
+        },
+      },
+      400,
+    )
+  }
+
+  if (body.newPassword.length < 6) {
+    return c.json(
+      {
+        error: {
+          message: "New password must be at least 6 characters",
+          type: "validation_error",
+        },
+      },
+      400,
+    )
+  }
+
+  const config = getConfig()
+  const auth = config.adminAuth
+  if (!auth) {
+    return c.json(
+      { error: { message: "Admin auth not configured", type: "server_error" } },
+      500,
+    )
+  }
+
+  if (!verifyAdminPassword(auth.username, body.currentPassword)) {
+    return c.json(
+      {
+        error: {
+          message: "Current password is incorrect",
+          type: "auth_error",
+        },
+      },
+      401,
+    )
+  }
+
+  await changeAdminPassword(body.newPassword)
+  return c.json({ success: true })
+})
+
+// ==================== API Keys ====================
+
+// List API keys
+adminRoutes.get("/api/api-keys", (c) => {
+  return c.json({ apiKeys: listApiKeys() })
+})
+
+// Generate new API key
+adminRoutes.post("/api/api-keys", async (c) => {
+  const body = await c.req.json<{ name: string }>()
+
+  if (!body.name || typeof body.name !== "string") {
+    return c.json(
+      {
+        error: {
+          message: "Name is required",
+          type: "validation_error",
+        },
+      },
+      400,
+    )
+  }
+
+  const apiKey = await generateApiKey(body.name.trim())
+  return c.json({ success: true, apiKey })
+})
+
+// Delete API key
+adminRoutes.delete("/api/api-keys/:id", async (c) => {
+  const id = c.req.param("id")
+  const deleted = await deleteApiKey(id)
+
+  if (!deleted) {
+    return c.json(
+      { error: { message: "API key not found", type: "not_found" } },
+      404,
+    )
+  }
+  return c.json({ success: true })
+})
+
+// ==================== Accounts ====================
 
 // Get all accounts
 adminRoutes.get("/api/accounts", async (c) => {
