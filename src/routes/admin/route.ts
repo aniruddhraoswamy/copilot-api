@@ -84,7 +84,7 @@ adminRoutes.post("/api/auth/login", async (c) => {
   // Set session cookie
   c.header(
     "Set-Cookie",
-    `admin_session=${token}; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=86400`,
+    `admin_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400`,
   )
 
   return c.json({ success: true })
@@ -99,7 +99,7 @@ adminRoutes.post("/api/auth/logout", (c) => {
 
   c.header(
     "Set-Cookie",
-    "admin_session=; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=0",
+    "admin_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0",
   )
   return c.json({ success: true })
 })
