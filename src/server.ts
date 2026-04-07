@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 
-import { validateApiKey, validateSession } from "./lib/auth"
+import { validateApiKey } from "./lib/auth"
 import { adminRoutes } from "./routes/admin/route"
 import { completionRoutes } from "./routes/chat-completions/route"
 import { embeddingRoutes } from "./routes/embeddings/route"
@@ -15,22 +15,22 @@ import { usageRoute } from "./routes/usage/route"
 export const server = new Hono()
 
 server.use(logger())
-server.use(cors())
+
+// Apply CORS only to API endpoints, not admin routes
+// CORS with Access-Control-Allow-Origin: * breaks Set-Cookie handling in browsers
+server.use("/chat/*", cors())
+server.use("/models/*", cors())
+server.use("/embeddings/*", cors())
+server.use("/responses/*", cors())
+server.use("/usage/*", cors())
+server.use("/token/*", cors())
+server.use("/v1/*", cors())
 
 // API key authentication middleware for API endpoints
 const apiKeyAuth: Parameters<typeof server.use>[1] = async (c, next) => {
-  // Allow admin session to bypass API key check (for admin panel model/usage fetches)
-  const cookieHeader = c.req.header("cookie") ?? ""
-  const sessionMatch = cookieHeader.match(/admin_session=([^;]+)/)
-  if (sessionMatch?.[1] && validateSession(sessionMatch[1])) {
-    await next()
-    return
-  }
-
   const authHeader = c.req.header("authorization")
-  const key = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : authHeader
+  const key =
+    authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : authHeader
 
   if (!validateApiKey(key)) {
     return c.json(

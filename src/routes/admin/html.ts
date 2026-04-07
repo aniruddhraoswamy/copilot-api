@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 export const loginHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -99,6 +100,7 @@ export const loginHtml = `<!DOCTYPE html>
       try {
         const res = await fetch('/admin/api/auth/login', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             username: document.getElementById('username').value,
@@ -635,7 +637,7 @@ export const adminHtml = `<!DOCTYPE html>
       const btn = document.getElementById('refreshModels');
       btn.classList.add('loading');
       try {
-        const res = await fetch('/v1/models');
+        const res = await fetch(API_BASE + '/models');
         const data = await res.json();
         renderModels(data);
       } catch (e) {
@@ -660,7 +662,7 @@ export const adminHtml = `<!DOCTYPE html>
       const btn = document.getElementById('refreshUsage');
       btn.classList.add('loading');
       try {
-        const res = await fetch('/usage');
+        const res = await fetch(API_BASE + '/usage');
         const data = await res.json();
         renderUsage(data);
       } catch (e) {
@@ -904,7 +906,7 @@ export const adminHtml = `<!DOCTYPE html>
     async function loadModelOptions() {
       const sel = document.getElementById('mappingTo');
       try {
-        const res = await fetch('/v1/models');
+        const res = await fetch(API_BASE + '/models');
         const data = await res.json();
         sel.innerHTML = '<option value="">Select target model</option>' +
           (data.data || []).map(m => '<option value="' + m.id + '">' + m.id + '</option>').join('');

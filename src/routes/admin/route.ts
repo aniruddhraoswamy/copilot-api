@@ -20,7 +20,11 @@ import {
 } from "~/lib/auth"
 import { getConfig, saveConfig } from "~/lib/config"
 import { copilotTokenManager } from "~/lib/copilot-token-manager"
+import { forwardError } from "~/lib/error"
 import { state } from "~/lib/state"
+import { state } from "~/lib/state"
+import { cacheModels } from "~/lib/utils"
+import { getCopilotUsage } from "~/services/github/get-copilot-usage"
 import { getDeviceCode } from "~/services/github/get-device-code"
 import { getGitHubUser } from "~/services/github/get-user"
 import { pollAccessTokenOnce } from "~/services/github/poll-access-token"
@@ -614,6 +618,38 @@ adminRoutes.delete("/api/model-mappings/:from", async (c) => {
   const { [from]: _removed, ...rest } = config.modelMapping
   await saveConfig({ ...config, modelMapping: rest })
   return c.json({ success: true })
+})
+
+// Admin-scoped models endpoint (so dashboard doesn't hit public API)
+adminRoutes.get("/api/models", async (c) => {
+  try {
+    if (!state.models) {
+      await cacheModels()
+    }
+    const models = state.models?.data.map((model) => ({
+      id: model.id,
+      object: "model",
+      type: "model",
+      created: 0,
+      created_at: new Date(0).toISOString(),
+      owned_by: model.vendor,
+      display_name: model.name,
+    }))
+    return c.json({ object: "list", data: models, has_more: false })
+  } catch (error) {
+    return await forwardError(c, error)
+  }
+})
+
+// Admin-scoped usage endpoint
+adminRoutes.get("/api/usage", async (c) => {
+  try {
+    const usage = await getCopilotUsage()
+    return c.json(usage)
+  } catch (error) {
+    console.error("Error fetching Copilot usage:", error)
+    return c.json({ error: "Failed to fetch Copilot usage" }, 500)
+  }
 })
 
 // Serve static HTML for admin UI
